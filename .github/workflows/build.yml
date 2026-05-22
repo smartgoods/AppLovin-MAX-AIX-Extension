@@ -1,0 +1,25 @@
+name: Build AIX Extension
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build App Inventor Extension
+        uses: mit-cml/appinventor-build-extension@main
+        with:
+          source: https://github.com/mit-cml/appinventor-sources.git
+
+      - name: Upload AIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppLovinMaxExtension
+          path: ./**/*.aix
