@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build App Inventor Extension
-        uses: mit-cml/appinventor-build-extension@main
+        uses: pavi2410/AIX-Action@main
         with:
-          source: https://github.com/mit-cml/appinventor-sources.git
+          package-name: 'com.haroon.applovinmax'
 
       - name: Upload AIX Artifact
         uses: actions/upload-artifact@v4
