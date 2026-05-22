@@ -3,6 +3,7 @@ package com.haroon.applovinmax;
 import android.app.Activity;
 import android.content.Context;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -20,8 +21,8 @@ import com.google.appinventor.components.runtime.EventDispatcher;
 @UsesLibraries(libraries = "applovin-sdk.jar")
 @UsesPermissions(permissionNames = "android.permission.INTERNET, android.permission.ACCESS_NETWORK_STATE, com.google.android.gms.permission.AD_ID")
 @DesignerComponent(
-        version = 2,
-        description = "AppLovin MAX extension for App Inventor. SDK initialization using reflection.",
+        version = 3,
+        description = "AppLovin MAX extension for App Inventor. Debug SDK initialization.",
         category = ComponentCategory.EXTENSION,
         nonVisible = true,
         iconName = ""
@@ -37,29 +38,64 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
         this.activity = container.$context();
     }
 
-    @SimpleFunction(description = "Test function to check if the extension is working.")
+    @SimpleFunction(description = "Test if the extension is working.")
     public void TestExtension() {
-        TestSuccess("AppLovin extension loaded successfully.");
+        TestSuccess("Extension loaded successfully.");
     }
 
-    @SimpleFunction(description = "Initialize AppLovin MAX SDK using your AppLovin SDK Key.")
-    public void InitializeSdk(String sdkKey) {
+    @SimpleFunction(description = "Check whether AppLovin SDK class exists inside the APK.")
+    public void CheckSdkClass() {
         try {
-            final Class<?> appLovinSdkClass = Class.forName("com.applovin.sdk.AppLovinSdk");
-            final Class<?> initConfigClass = Class.forName("com.applovin.sdk.AppLovinSdkInitializationConfiguration");
-            final Class<?> listenerClass = Class.forName("com.applovin.sdk.AppLovinSdk$SdkInitializationListener");
+            Class.forName("com.applovin.sdk.AppLovinSdk");
+            DebugMessage("SUCCESS: AppLovinSdk class found.");
+        } catch (Exception e) {
+            DebugMessage("FAILED: AppLovinSdk class not found: " + e.toString());
+        }
+    }
+
+    @SimpleFunction(description = "Initialize AppLovin MAX SDK using SDK key.")
+    public void InitializeSdk(final String sdkKey) {
+        try {
+            DebugMessage("InitializeSdk started.");
+
+            final Class<?> appLovinSdkClass =
+                    Class.forName("com.applovin.sdk.AppLovinSdk");
+
+            final Class<?> initConfigClass =
+                    Class.forName("com.applovin.sdk.AppLovinSdkInitializationConfiguration");
+
+            final Class<?> mediationProviderClass =
+                    Class.forName("com.applovin.sdk.AppLovinMediationProvider");
+
+            final Class<?> listenerClass =
+                    Class.forName("com.applovin.sdk.AppLovinSdk$SdkInitializationListener");
+
+            DebugMessage("All AppLovin classes found.");
 
             Method builderMethod = initConfigClass.getMethod("builder", String.class, Context.class);
             Object builder = builderMethod.invoke(null, sdkKey, activity);
 
-            Method setMediationProviderMethod = builder.getClass().getMethod("setMediationProvider", String.class);
-            setMediationProviderMethod.invoke(builder, "max");
+            DebugMessage("Init builder created.");
+
+            Field maxField = mediationProviderClass.getField("MAX");
+            Object maxProvider = maxField.get(null);
+
+            Method setMediationProviderMethod =
+                    builder.getClass().getMethod("setMediationProvider", mediationProviderClass);
+
+            setMediationProviderMethod.invoke(builder, maxProvider);
+
+            DebugMessage("Mediation provider set.");
 
             Method buildMethod = builder.getClass().getMethod("build");
             Object initConfig = buildMethod.invoke(builder);
 
+            DebugMessage("Init config built.");
+
             Method getInstanceMethod = appLovinSdkClass.getMethod("getInstance", Context.class);
             Object appLovinSdk = getInstanceMethod.invoke(null, activity);
+
+            DebugMessage("AppLovinSdk instance created.");
 
             Object listener = Proxy.newProxyInstance(
                     listenerClass.getClassLoader(),
@@ -70,6 +106,7 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
                             activity.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
+                                    DebugMessage("SDK initialized callback received.");
                                     SdkInitialized();
                                 }
                             });
@@ -84,10 +121,12 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
                     listenerClass
             );
 
+            DebugMessage("Calling initialize now.");
             initializeMethod.invoke(appLovinSdk, initConfig, listener);
 
         } catch (Exception e) {
             SdkInitializationFailed(e.toString());
+            DebugMessage("InitializeSdk failed: " + e.toString());
         }
     }
 
@@ -107,6 +146,7 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
             showDebuggerMethod.invoke(appLovinSdk);
 
         } catch (Exception e) {
+            DebugMessage("OpenMediationDebugger failed: " + e.toString());
             SdkInitializationFailed(e.toString());
         }
     }
@@ -114,6 +154,11 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
     @SimpleEvent(description = "Triggered when test function runs successfully.")
     public void TestSuccess(String message) {
         EventDispatcher.dispatchEvent(this, "TestSuccess", message);
+    }
+
+    @SimpleEvent(description = "Debug message.")
+    public void DebugMessage(String message) {
+        EventDispatcher.dispatchEvent(this, "DebugMessage", message);
     }
 
     @SimpleEvent(description = "Triggered when AppLovin SDK initializes successfully.")
