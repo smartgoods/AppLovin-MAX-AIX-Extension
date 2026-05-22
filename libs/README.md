@@ -1,10 +1,10 @@
 # Libraries
 
-Put the latest AppLovin MAX Android SDK AAR file here.
+This folder is for AppLovin MAX SDK files.
 
-Required file later:
+## AppLovin SDK
 
-applovin-sdk.aar
+Official Gradle dependency:
 
-Do not add mediation adapter AAR files yet.
-Only add the AppLovin SDK first.
+```gradle
+implementation 'com.applovin:applovin-sdk:+'
