@@ -26,19 +26,11 @@ jobs:
           mkdir -p appinventor-sources/appinventor/components/src/com/haroon/applovinmax
           cp extension/src/com/haroon/applovinmax/AppLovinMax.java appinventor-sources/appinventor/components/src/com/haroon/applovinmax/
 
-      - name: Extract AppLovin SDK JAR from AAR
+      - name: Copy AppLovin AAR library
         run: |
-          mkdir -p temp_applovin
-          unzip -o extension/libs/applovin-sdk.aar -d temp_applovin
-
-          echo "Checking AppLovin classes..."
-          jar tf temp_applovin/classes.jar | grep "com/applovin/sdk/AppLovinSdk.class"
-
-          mkdir -p appinventor-sources/appinventor/components/lib
           mkdir -p appinventor-sources/appinventor/components/deps
-
-          cp temp_applovin/classes.jar appinventor-sources/appinventor/components/lib/applovin-sdk.jar
-          cp temp_applovin/classes.jar appinventor-sources/appinventor/components/deps/applovin-sdk.jar
+          cp extension/libs/applovin-sdk.aar appinventor-sources/appinventor/components/deps/applovin-sdk.aar
+          ls -lh appinventor-sources/appinventor/components/deps/applovin-sdk.aar
 
       - name: Build extension
         run: |
