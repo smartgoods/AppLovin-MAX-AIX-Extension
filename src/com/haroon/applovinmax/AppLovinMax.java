@@ -17,7 +17,7 @@ import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
 
-@UsesLibraries(libraries = "applovin-sdk.aar")
+@UsesLibraries(libraries = "applovin-sdk.jar")
 @UsesPermissions(permissionNames = "android.permission.INTERNET, android.permission.ACCESS_NETWORK_STATE, com.google.android.gms.permission.AD_ID")
 @DesignerComponent(
         version = 2,
