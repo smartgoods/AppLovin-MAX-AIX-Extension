@@ -1,11 +1,10 @@
 package com.haroon.applovinmax;
 
 import android.app.Activity;
+import android.content.Context;
 
-import com.applovin.sdk.AppLovinMediationProvider;
-import com.applovin.sdk.AppLovinSdk;
-import com.applovin.sdk.AppLovinSdkConfiguration;
-import com.applovin.sdk.AppLovinSdkInitializationConfiguration;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
 import com.google.appinventor.components.annotations.DesignerComponent;
 import com.google.appinventor.components.annotations.SimpleEvent;
@@ -22,7 +21,7 @@ import com.google.appinventor.components.runtime.EventDispatcher;
 @UsesPermissions(permissionNames = "android.permission.INTERNET, android.permission.ACCESS_NETWORK_STATE, com.google.android.gms.permission.AD_ID")
 @DesignerComponent(
         version = 2,
-        description = "AppLovin MAX extension for App Inventor. SDK initialization added.",
+        description = "AppLovin MAX extension for App Inventor. SDK initialization using reflection.",
         category = ComponentCategory.EXTENSION,
         nonVisible = true,
         iconName = ""
@@ -46,21 +45,49 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
     @SimpleFunction(description = "Initialize AppLovin MAX SDK using your AppLovin SDK Key.")
     public void InitializeSdk(String sdkKey) {
         try {
-            AppLovinSdkInitializationConfiguration initConfig =
-                    AppLovinSdkInitializationConfiguration.builder(sdkKey, activity)
-                            .setMediationProvider(AppLovinMediationProvider.MAX)
-                            .build();
+            final Class<?> appLovinSdkClass = Class.forName("com.applovin.sdk.AppLovinSdk");
+            final Class<?> initConfigClass = Class.forName("com.applovin.sdk.AppLovinSdkInitializationConfiguration");
+            final Class<?> listenerClass = Class.forName("com.applovin.sdk.AppLovinSdk$SdkInitializationListener");
 
-            AppLovinSdk.getInstance(activity).initialize(initConfig, new AppLovinSdk.SdkInitializationListener() {
-                @Override
-                public void onSdkInitialized(final AppLovinSdkConfiguration configuration) {
-                    sdkInitialized = true;
-                    SdkInitialized();
-                }
-            });
+            Method builderMethod = initConfigClass.getMethod("builder", String.class, Context.class);
+            Object builder = builderMethod.invoke(null, sdkKey, activity);
+
+            Method setMediationProviderMethod = builder.getClass().getMethod("setMediationProvider", String.class);
+            setMediationProviderMethod.invoke(builder, "max");
+
+            Method buildMethod = builder.getClass().getMethod("build");
+            Object initConfig = buildMethod.invoke(builder);
+
+            Method getInstanceMethod = appLovinSdkClass.getMethod("getInstance", Context.class);
+            Object appLovinSdk = getInstanceMethod.invoke(null, activity);
+
+            Object listener = Proxy.newProxyInstance(
+                    listenerClass.getClassLoader(),
+                    new Class<?>[]{listenerClass},
+                    (proxy, method, args) -> {
+                        if ("onSdkInitialized".equals(method.getName())) {
+                            sdkInitialized = true;
+                            activity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    SdkInitialized();
+                                }
+                            });
+                        }
+                        return null;
+                    }
+            );
+
+            Method initializeMethod = appLovinSdkClass.getMethod(
+                    "initialize",
+                    initConfigClass,
+                    listenerClass
+            );
+
+            initializeMethod.invoke(appLovinSdk, initConfig, listener);
 
         } catch (Exception e) {
-            SdkInitializationFailed(e.getMessage());
+            SdkInitializationFailed(e.toString());
         }
     }
 
@@ -72,9 +99,15 @@ public class AppLovinMax extends AndroidNonvisibleComponent {
     @SimpleFunction(description = "Open AppLovin MAX Mediation Debugger.")
     public void OpenMediationDebugger() {
         try {
-            AppLovinSdk.getInstance(activity).showMediationDebugger();
+            Class<?> appLovinSdkClass = Class.forName("com.applovin.sdk.AppLovinSdk");
+            Method getInstanceMethod = appLovinSdkClass.getMethod("getInstance", Context.class);
+            Object appLovinSdk = getInstanceMethod.invoke(null, activity);
+
+            Method showDebuggerMethod = appLovinSdkClass.getMethod("showMediationDebugger");
+            showDebuggerMethod.invoke(appLovinSdk);
+
         } catch (Exception e) {
-            SdkInitializationFailed(e.getMessage());
+            SdkInitializationFailed(e.toString());
         }
     }
 
